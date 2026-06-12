@@ -42,7 +42,7 @@ def generate(
     try:
         parsed_contract = parse_contract(contract)
         heg = HierarchicalExecutionGraph(parsed_contract).build()
-        layers = heg.get_execution_packets()
+        layers = heg.get_execution_packets(source_dir=output_dir)
         
         print(f"🌟 Starting Contract-Coding generation from: {contract}")
         print(f"📦 Found {len(parsed_contract.modules)} modules.")
@@ -52,6 +52,8 @@ def generate(
             print(f"   [Layer {i}]:")
             for packet in layer:
                 print(f"      -> ExecutionPacket(target={packet.target_node}, retries={packet.retry_budget})")
+                if packet.dependency_signatures:
+                    print(f"         [dim]Context boundaries active: found {len(packet.dependency_signatures)} dependency signatures.[/dim]")
             
         print(f"[green]✔[/green] Code generation complete! Saved to {output_dir}")
         

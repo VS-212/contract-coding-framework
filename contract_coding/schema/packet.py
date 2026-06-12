@@ -12,3 +12,6 @@ class ExecutionPacket(BaseModel):
     stop_conditions: List[str] = Field(default_factory=list, description="Conditions that signify completion")
     retry_budget: int = Field(default=3, description="Max retries before handoff")
     failure_handoff: FailureHandoff = Field(default_factory=FailureHandoff)
+    dependency_signatures: Dict[str, str] = Field(default_factory=dict, description="Abstract API/class/function signatures of dependent modules")
+    allowed_files: List[str] = Field(default_factory=list, description="Paths to files this agent is allowed to access")
+

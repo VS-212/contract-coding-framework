@@ -61,8 +61,15 @@ class HierarchicalExecutionGraph:
         reversed_graph = self.execution_graph.reverse(copy=True)
         return list(nx.topological_generations(reversed_graph))
         
-    def get_execution_packets(self) -> List[List['ExecutionPacket']]:
+    def get_execution_packets(self, source_dir: Any = None) -> List[List['ExecutionPacket']]:
         from ..schema.packet import ExecutionPacket
+        from ..audit.signatures import extract_signatures_from_dir
+        
+        # Extract existing signatures if source_dir is provided
+        signatures = {}
+        if source_dir:
+            signatures = extract_signatures_from_dir(source_dir)
+            
         layers = self.get_execution_layers()
         packet_layers = []
         for layer in layers:
@@ -76,13 +83,33 @@ class HierarchicalExecutionGraph:
                 # Default stop condition is that all V-M-* verification tests pass
                 stop_conditions = [f"Pass verification for {m}" for m in modules]
                 
+                # Find all downstream dependencies for this node/modules
+                dep_sigs = {}
+                allowed_paths = []
+                
+                if node in self.execution_graph:
+                    for successor in self.execution_graph.successors(node):
+                        if successor.startswith("CohesionNode"):
+                            successors_list = list(self.cohesion_nodes[successor])
+                        else:
+                            successors_list = [successor]
+                        for succ in successors_list:
+                            if succ in signatures:
+                                dep_sigs[succ] = signatures[succ]
+                                
+                if source_dir:
+                    allowed_paths.append(str(source_dir / "main.py"))
+                
                 packet = ExecutionPacket(
                     target_node=node,
                     modules=modules,
                     stop_conditions=stop_conditions,
-                    retry_budget=3
+                    retry_budget=3,
+                    dependency_signatures=dep_sigs,
+                    allowed_files=allowed_paths
                 )
                 packet_layer.append(packet)
+            packet_layer.sort(key=lambda p: p.target_node) # Stable sorting
             packet_layers.append(packet_layer)
         return packet_layers
         
