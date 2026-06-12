@@ -114,3 +114,96 @@ def calculate_sum(a: int, b: int) -> int:
     assert "pass" in sig_content
     assert "result = a + b" not in sig_content # Full code is hidden
 
+def test_contract_refactoring_guide():
+    from contract_coding.graph.refactor import ContractRefactorer
+    
+    yaml_content = """
+    version: "1.0"
+    intent: "Test cyclic refactoring"
+    modules:
+      - name: "M-A"
+        description: "Module A"
+      - name: "M-B"
+        description: "Module B"
+    topology:
+      - source: "M-A"
+        target: "M-B"
+      - source: "M-B"
+        target: "M-A"
+    """
+    contract = parse_contract(yaml_content)
+    refactorer = ContractRefactorer(contract)
+    reports = refactorer.analyze_cycles()
+    
+    assert len(reports) == 1
+    report = reports[0]
+    assert "M-A" in report["modules"]
+    assert "M-B" in report["modules"]
+    assert ("M-A", "M-B") in report["edges"]
+    assert ("M-B", "M-A") in report["edges"]
+    
+    # Must contain recommendations
+    assert len(report["recommendations"]) > 0
+    rec_types = [rec["type"] for rec in report["recommendations"]]
+    assert "INTERFACE_EXTRACTION" in rec_types
+    assert "DEPENDENCY_INVERSION" in rec_types
+
+def test_differential_heg_audit(tmp_path):
+    from contract_coding.audit.structural import StructuralAuditor
+    
+    # Create code directory
+    code_dir = tmp_path / "src"
+    code_dir.mkdir()
+    
+    a_code = """
+# @contract: M-A
+def a_func():
+    b_func()
+"""
+    b_code = """
+# @contract: M-B
+def b_func():
+    pass
+"""
+    (code_dir / "a.py").write_text(a_code)
+    (code_dir / "b.py").write_text(b_code)
+    
+    yaml_content = """
+    version: "1.0"
+    intent: "Test"
+    modules:
+      - name: "M-A"
+        description: ""
+      - name: "M-B"
+        description: ""
+    topology:
+      - source: "M-A"
+        target: "M-B"
+    """
+    contract = parse_contract(yaml_content)
+    heg = HierarchicalExecutionGraph(contract).build()
+    
+    # Audit 1 (Generates cache)
+    auditor = StructuralAuditor(heg, code_dir)
+    res1 = auditor.audit()
+    assert res1["structural_integrity"] == 1.0
+    
+    cache_path = code_dir / ".contract-cache.json"
+    assert cache_path.exists()
+    
+    # Modify a file
+    a_code_mod = """
+# @contract: M-A
+def a_func():
+    # still calls b_func
+    b_func()
+    pass
+"""
+    (code_dir / "a.py").write_text(a_code_mod)
+    
+    # Audit 2 (Should load B from cache, re-audit A)
+    auditor2 = StructuralAuditor(heg, code_dir)
+    res2 = auditor2.audit()
+    assert res2["structural_integrity"] == 1.0
+
+

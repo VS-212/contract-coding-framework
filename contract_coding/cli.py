@@ -133,6 +133,39 @@ def check_autonomy(
         print(f"[red]Error:[/red] {e}")
         raise typer.Exit(code=1)
 
+@app.command()
+def refactor(
+    contract: Path = typer.Argument(..., help="Path to the Language Contract YAML")
+):
+    """
+    Analyzes the contract topology for cycles and outputs structural refactoring advice.
+    """
+    from .graph.refactor import ContractRefactorer
+    
+    try:
+        parsed_contract = parse_contract(contract)
+        refactorer = ContractRefactorer(parsed_contract)
+        reports = refactorer.analyze_cycles()
+        
+        if not reports:
+            print("[green]✔ No cyclic dependencies found. Architecture is a clean DAG![/green]")
+            return
+            
+        print(f"[yellow]⚠ Found {len(reports)} cyclic dependency groups:[/yellow]\n")
+        for i, report in enumerate(reports):
+            print(f"[bold red]Cycle Group #{i+1}:[/bold red]")
+            print(f"   Modules involved: {', '.join(report['modules'])}")
+            print(f"   Edges: {', '.join(f'{u} -> {v}' for u, v in report['edges'])}")
+            print("\n   [bold cyan]Refactoring Suggestions:[/bold cyan]")
+            for rec in report['recommendations']:
+                print(f"      -> [bold]{rec['title']}[/bold]:")
+                print(f"         {rec['description']}")
+            print("-" * 50)
+            
+    except Exception as e:
+        print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(code=1)
+
 def main():
     app()
 
