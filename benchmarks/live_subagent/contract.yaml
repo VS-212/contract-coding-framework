@@ -1,0 +1,34 @@
+version: "1.0"
+intent: "Implement a robust Payment System"
+global_constraints:
+  - name: "INV-DAG"
+    expression: "topology.has_cycles() == false"
+    description: "No cyclic dependencies"
+
+technology_stack:
+  languages: ["Python"]
+
+verification_plan:
+  - id: "V-M-PAY-CTRL"
+    module_id: "M-PAY-CTRL"
+    command: "pytest tests/"
+  - id: "V-M-PAY-PROCESSOR"
+    module_id: "M-PAY-PROCESSOR"
+    command: "pytest tests/"
+  - id: "V-M-PAY-REPO"
+    module_id: "M-PAY-REPO"
+    command: "pytest tests/"
+
+modules:
+  - name: "M-PAY-CTRL"
+    description: "Payment Controller handling requests"
+  - name: "M-PAY-PROCESSOR"
+    description: "Business logic for processing payments"
+  - name: "M-PAY-REPO"
+    description: "Database layer for storing transactions"
+
+topology:
+  - source: "M-PAY-CTRL"
+    target: "M-PAY-PROCESSOR"
+  - source: "M-PAY-PROCESSOR"
+    target: "M-PAY-REPO"

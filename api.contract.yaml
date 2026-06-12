@@ -1,0 +1,52 @@
+version: "1.0"
+intent: "Create a scalable user authentication API with role-based access control."
+global_constraints:
+  - name: "INV-NoCircularDependencies"
+    expression: "topology.has_cycles() == false"
+    description: "The module dependency graph must be a Directed Acyclic Graph (DAG) after cohesion grouping."
+
+technology_stack:
+  languages: ["Python"]
+  frameworks: ["FastAPI", "Pydantic"]
+  testing_tools: ["pytest"]
+
+verification_plan:
+  - id: "V-M-AUTH-CTRL"
+    module_id: "M-AUTH-CTRL"
+    command: "pytest tests/test_auth.py"
+    scenarios: ["Login success", "Login failed"]
+
+modules:
+  - name: "M-AUTH-CTRL"
+    description: "Handles HTTP requests for login and registration."
+    responsibilities:
+      - "Parse incoming login requests"
+      - "Return JWT tokens"
+    constraints:
+      - name: "ValidHTTPMethods"
+        expression: "request.method in ['POST']"
+        description: "Auth controller only accepts POST requests."
+
+  - name: "M-AUTH-SVC"
+    description: "Business logic for authentication."
+    responsibilities:
+      - "Hash passwords"
+      - "Verify credentials against DB"
+    constraints:
+      - name: "StrongHashing"
+        expression: "crypto.algo == 'bcrypt'"
+        description: "Must use bcrypt for hashing passwords."
+
+  - name: "M-USER-REPO"
+    description: "Database access layer for users."
+    responsibilities:
+      - "Fetch user by email"
+      - "Save new user"
+
+topology:
+  - source: "M-AUTH-CTRL"
+    target: "M-AUTH-SVC"
+    description: "Controller delegates to service."
+  - source: "M-AUTH-SVC"
+    target: "M-USER-REPO"
+    description: "Service fetches user data."

@@ -1,0 +1,11 @@
+
+version: "1.0"
+intent: "Simple API"
+modules:
+  - name: "M-CTRL"
+    description: "Controller"
+  - name: "M-SVC"
+    description: "Service"
+topology:
+  - source: "M-CTRL"
+    target: "M-SVC"

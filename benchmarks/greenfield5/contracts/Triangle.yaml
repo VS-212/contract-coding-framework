@@ -1,0 +1,17 @@
+
+version: "1.0"
+intent: "Triangle"
+modules:
+  - name: "M-A"
+    description: ""
+  - name: "M-B"
+    description: ""
+  - name: "M-C"
+    description: ""
+topology:
+  - source: "M-A"
+    target: "M-B"
+  - source: "M-B"
+    target: "M-C"
+  - source: "M-A"
+    target: "M-C"

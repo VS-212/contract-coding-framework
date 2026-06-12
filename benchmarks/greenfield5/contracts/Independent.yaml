@@ -1,0 +1,9 @@
+
+version: "1.0"
+intent: "Independent"
+modules:
+  - name: "M-A"
+    description: ""
+  - name: "M-B"
+    description: ""
+topology: []
